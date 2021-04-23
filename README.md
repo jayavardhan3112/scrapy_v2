@@ -15,10 +15,8 @@ To run this:
 
     optional arguments:
     -h, --help            show this help message and exit
-    -mu MAX_URLS, --max-urls MAX_URLS
-                            Number of max URLs to crawl, default is 10000.
-    -md MAX_URLS, --max-depth MAX_DEPTH
-                            Number of max Depth of the webpage urls to crawl, default is 10000.
+    -mu MAX_URLS,   --max-urls MAX_URLS           Number of max URLs to crawl, default is 10000.
+    -md MAX_DEPTH,   --max-depth MAX_DEPTH         Number of max Depth of the webpage urls to crawl, default is 10000.
     ```
 - For instance, to extract all links from 2 first URLs appeared in github.com:
     ```
