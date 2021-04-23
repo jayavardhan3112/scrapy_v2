@@ -18,7 +18,7 @@ To run this:
     -mu MAX_URLS,   --max-urls MAX_URLS           Number of max URLs to crawl, default is 10000.
     -md MAX_DEPTH,   --max-depth MAX_DEPTH         Number of max Depth of the webpage urls to crawl, default is 10000.
     ```
-- For instance, to extract all links from 2 first URLs appeared in github.com:
+- For instance, to extract all links from testjaiin.wordpress.com by scraping only 4 urls from the webpage urls:
     ```
     python beautiful_soup_script.py  https://testjaiin.wordpress.com  -md 4
     ```
