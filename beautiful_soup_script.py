@@ -1,4 +1,5 @@
 import requests
+from multiprocessing.pool import ThreadPool as Pool
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -17,9 +18,14 @@ YELLOW = colorama.Fore.YELLOW
 internal_urls = set()
 external_urls = set()
 error_urls = set()
-print_logs = True
 total_urls_visited = 0
-headless = True
+
+print_logs = False
+headless = False
+parProc = True
+pool_size = 10
+
+pool = Pool(pool_size)
 
 if headless:
     browser = webdriver.Firefox()
@@ -125,7 +131,14 @@ def get_all_website_links(url, max_depth):
     return urls
 
 
-def crawl(url, max_urls=10000, max_depth=10000):
+def worker(link, max_homepage_depth, max_urls, max_depth):
+    try:
+        crawl(link, max_homepage_depth=max_homepage_depth, max_urls=max_urls, max_depth=max_depth)
+    except:
+        print('error with item')
+
+
+def crawl(url, max_homepage_depth=10, max_urls=10000, max_depth=10000, home_url=False):
     """
     Crawls a web page and extracts all links.
     You'll find all links in `external_urls` and `internal_urls` global set variables.
@@ -137,12 +150,17 @@ def crawl(url, max_urls=10000, max_depth=10000):
     url = clean_url(url)
     if print_logs:
         print(f"{YELLOW}[*] Crawling: {url}{RESET}")
-    links = get_all_website_links(url, max_depth)
+    depth = max_homepage_depth if (home_url and parProc) else max_depth
+    links = get_all_website_links(url, depth)
+
     links = unique_urls(links)
     for link in links:
         if total_urls_visited > max_urls:
             break
-        crawl(link, max_urls=max_urls, max_depth=max_depth)
+        if parProc and home_url:
+            pool.apply_async(worker, (link, max_homepage_depth, max_urls, max_depth,))
+        else:
+            crawl(link, max_homepage_depth=max_homepage_depth, max_urls=max_urls, max_depth=max_depth)
 
 
 if __name__ == "__main__":
@@ -150,24 +168,34 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Link Extractor Tool with Python")
     parser.add_argument("url", help="The URL to extract links from.")
+
     parser.add_argument("-mu", "--max-urls", help="Number of max URLs to crawl, default is 10000.", default=10000,
                         type=int)
+
     parser.add_argument("-md", "--max-depth",
                         help="Number of max Depth of the webpage urls to crawl, default is 10000.", default=10000,
+                        type=int)
+
+    parser.add_argument("-mhd", "--max-homepage-depth",
+                        help="Number of max Depth of the home page to crawl, default is 10.", default=10,
                         type=int)
 
     args = parser.parse_args()
     url = args.url
     max_urls = args.max_urls
     max_depth = args.max_depth
+    max_homepage_depth = args.max_homepage_depth
     start = time.time()
 
-    crawl(url, max_urls=max_urls, max_depth=max_depth)
-    if print_logs:
-        print("[+] Total Internal links:", len(internal_urls))
-        print("[+] Total External links:", len(external_urls))
-        print("[+] Total Error links:", len(error_urls))
-        print("[+] Total URLs:", len(external_urls) + len(internal_urls))
+    crawl(url, max_homepage_depth=max_homepage_depth, max_urls=max_urls, max_depth=max_depth, home_url=True)
+
+    pool.close()
+    pool.join()
+
+    print("[+] Total Internal links:", len(internal_urls))
+    print("[+] Total External links:", len(external_urls))
+    print("[+] Total Error links:", len(error_urls))
+    print("[+] Total URLs:", len(external_urls) + len(internal_urls))
 
     domain_name = urlparse(url).netloc
     end = time.time()
