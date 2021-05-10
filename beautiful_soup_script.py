@@ -3,6 +3,7 @@ from multiprocessing.pool import ThreadPool as Pool
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver import FirefoxOptions
 import colorama
 import time
 import re
@@ -16,19 +17,22 @@ RESET = colorama.Fore.RESET
 YELLOW = colorama.Fore.YELLOW
 
 internal_urls = set()
+crawling_urls = set()
 external_urls = set()
 error_urls = set()
 total_urls_visited = 0
 
-print_logs = False
-headless = False
+print_logs = True
+headless = True
 parProc = True
 pool_size = 10
 
 pool = Pool(pool_size)
 
 if headless:
-    browser = webdriver.Firefox()
+    opts = FirefoxOptions()
+    opts.add_argument("--headless")
+    browser = webdriver.Firefox(firefox_options=opts)
 
 
 def is_valid(url, domain_name):
@@ -57,7 +61,7 @@ def unique_urls(urls):
         # Remove hash part in url
         url = url.split('#')[0]
         # Removing query prams in url
-        url = url.split("?")[0]
+        # url = url.split("?")[0]
         # Removes the trailing slash
         if url[len(url) - 1] == "/":
             url = url.split("/")
@@ -101,6 +105,11 @@ def get_all_website_links(url, max_depth):
         soup = BeautifulSoup(requests.get(url).content, "html.parser")
     for a_tag in soup.findAll("a"):
         href = a_tag.attrs.get("href")
+        if href in crawling_urls:
+            continue
+
+        crawling_urls.add(href)
+
         if href == "" or href is None:
             continue
         # Specific to Titan eye plus project
@@ -177,7 +186,7 @@ if __name__ == "__main__":
                         type=int)
 
     parser.add_argument("-mhd", "--max-homepage-depth",
-                        help="Number of max Depth of the home page to crawl, default is 10.", default=10,
+                        help="Number of max Depth of the home page to crawl, default is 10000.", default=10000,
                         type=int)
 
     args = parser.parse_args()
